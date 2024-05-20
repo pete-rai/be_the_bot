@@ -1,6 +1,6 @@
 # Be the Bot
 
-> Visit my [Blog](http://pete.rai.org.uk) to get in touch or to
+> Visit my [Blog](http://pete.rai.org.uk) to get in touch 
 
 ## Overview
 
