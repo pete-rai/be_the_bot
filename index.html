@@ -1,0 +1,339 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Be The Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" >
+<style>
+
+@keyframes wait {
+    from { background-size:   0% 100%; }
+    to   { background-size: 100% 100%; }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Inter, arial, sans-serif;
+    color: #333;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    overflow-x: hidden;
+    overflow-y: visible;
+    background-color: #ccc;
+    margin-top: 20px;
+}
+
+.container {
+    margin: 35px auto;
+    width: 90%;
+    max-width: 600px;
+    padding: 30px;
+    border-radius: 20px;
+    background-color: whitesmoke;
+    box-shadow: 0px 3px 15px rgba(0,0,0,0.2);
+}
+
+h1 {
+    font-size: 3rem;
+}
+
+#category option {
+    text-align: center;
+}
+
+#multichoice {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#title {
+    text-align: center;
+    font-size: 1.35rem;
+    font-weight: bold;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+#question {
+    padding: 20px;
+    background: #4c93ba;
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1.3rem;
+    border-radius: 10px;
+}
+
+#score {
+    font-size: 0.8rem;
+    padding: 10px;
+    background-image: linear-gradient(to right, #ccc 0%, #ccc 100%);
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+    border-radius: 10px;
+    border: 1px dashed #888;
+}
+
+#options {
+    margin: 10px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 10px;
+}
+
+#options input[type=radio] {
+    display: none;
+}
+
+#options label {
+    background: white;
+    border: 3px solid #ddd;
+    color: #444;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+    line-height: 1.2rem;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+#options input[type="radio"]:not(:disabled) + label:hover {
+    border-color: #4c93ba;
+}
+
+#options label.true {
+    background: #d8ffc4;
+    border-color: #60a03f;
+}
+
+#options label.false {
+    background: #ffe8e8;
+    border-color: #c78181;
+}
+
+#restart {
+    border: 1px solid grey;
+    font-size: 0.8rem;
+    color: #333 !important;
+    padding: 5px 10px;
+    background-color: whitesmoke;
+    text-decoration: none;
+    border-radius: 5px;
+    text-transform: uppercase;
+}
+
+footer {
+    font-size: 0.8rem;
+    margin-top: 50px;
+    margin-bottom: 20px;
+}
+
+a, a:hover, a:active, a:visited {
+    outline: none;
+    color: #333;
+}
+
+</style>
+</head>
+<body>
+  <h1>Be the Bot</h1>
+  <p>Try out OpenAI's GPT assessment pack for yourself</p>
+  <select id="category">
+    <option value="">All Categories</option>
+  </select>
+  <div class="container">
+    <div id="multichoice">
+      <div id="title"></div>
+      <div id="question"></div>
+      <div id="options">
+        <input type="radio" name="option" id="option_a">
+        <label for="option_a" data-idx="1"></label>
+        <input type="radio" name="option" id="option_b">
+        <label for="option_b" data-idx="2"></label>
+        <input type="radio" name="option" id="option_c">
+        <label for="option_c" data-idx="3"></label>
+        <input type="radio" name="option" id="option_d">
+        <label for="option_d" data-idx="4"></label>
+      </div>
+      <div id="score"></div>
+    </div>
+  </div>
+  <div>
+    <a id="restart" href="#" onclick="window.location.reload(true); return false;">restart</a>
+  </div>
+  <footer>
+    <a href="https://pete.rai.org.uk">Pete Rai</a>
+  </footer>
+  <script>
+
+// --- constants
+
+const WAIT = 1.75; // seconds between questions
+const CTRL = {
+    TITLE:    document.getElementById('title'),
+    QUESTION: document.getElementById('question'),
+    SCORE:    document.getElementById('score'),
+    LABELS:   document.querySelectorAll('#options label'),
+    CATEGORY: document.getElementById('category'),
+    OPTIONS: {
+        ALL: document.querySelectorAll('#options input[type=radio]'),
+        A: document.querySelector('label[for="option_a"]'),
+        B: document.querySelector('label[for="option_b"]'),
+        C: document.querySelector('label[for="option_c"]'),
+        D: document.querySelector('label[for="option_d"]')
+    }
+}
+
+// --- context
+
+let score = { total: 0, right: 0 };
+let which = '';  // current category
+
+// --- presents a key as a human readable string
+
+function present(text) {
+    return text.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+// --- control wait indicator
+
+function wait(start = false) {
+    CTRL.SCORE.style.transition = `background-size ${ WAIT }s linear`;
+
+    if (start) {
+        CTRL.SCORE.style.animation = `wait ${ WAIT }s forwards`;
+    }
+    else  {
+        CTRL.SCORE.style.backgroundSize = '0% 100%';
+        CTRL.SCORE.style.animation      = '';
+    }
+}
+
+// --- loads a question
+
+function load() {
+    wait(false);
+    fetch(`/api/question.php?${ which }`)
+    .then(res => res.json())
+    .then(q => {
+//        console.log(q);
+
+        CTRL.TITLE.innerHTML = `${ q.area } &raquo; ${ q.subject }`;
+        CTRL.QUESTION.innerHTML = q.question;
+
+        CTRL.OPTIONS.ALL.forEach(o => {
+            o.disabled = false;
+            o.checked  = false
+        });
+
+        CTRL.LABELS.forEach(l => l.classList.remove('true', 'false'));
+
+        CTRL.OPTIONS.A.innerHTML = q.option_a;
+        CTRL.OPTIONS.B.innerHTML = q.option_b;
+        CTRL.OPTIONS.C.innerHTML = q.option_c;
+        CTRL.OPTIONS.D.innerHTML = q.option_d;
+
+        CTRL.OPTIONS.A.setAttribute('data-correct', q.answer === 'option_a');
+        CTRL.OPTIONS.B.setAttribute('data-correct', q.answer === 'option_b');
+        CTRL.OPTIONS.C.setAttribute('data-correct', q.answer === 'option_c');
+        CTRL.OPTIONS.D.setAttribute('data-correct', q.answer === 'option_d');
+    });
+}
+
+// --- updates the game stats
+
+function stats() {
+    CTRL.SCORE.textContent = `${ score.right } correct : ${ score.total } attempted`;
+}
+
+// --- checks a selection
+
+function check(event) {
+    let chosen = event.target;
+
+    if (chosen.checked) { // also triggered on uncheck during load
+        let label = document.querySelector(`label[for="${ chosen.id }"]`);
+        let right = label.getAttribute('data-correct');
+
+        label.classList.add(right);
+        CTRL.OPTIONS.ALL.forEach(o => o.disabled = true); // one guess only
+
+        score.right += right === 'true' ? 1 : 0;
+        score.total += 1;
+
+        stats();
+        wait(true);
+        setTimeout(load, WAIT * 1000);
+    }
+}
+
+// --- loads all the categories
+
+function categories() {
+    fetch('/api/categories.php')
+    .then(response => response.json())
+    .then(data => {
+        let areas = {};
+
+        data.forEach(item => {
+            areas[item.area] = areas[item.area] || [];
+            areas[item.area].push(item.name);
+        });
+
+        Object.keys(areas).forEach(area => {
+            let group = document.createElement('optgroup');
+            group.label = present(area);
+
+            let all = document.createElement('option'); // all for area
+            all.value = `area=${ area }`;
+            all.textContent = `All ${ present(area) }`;
+            group.appendChild(all);
+
+            areas[area].forEach(subject => {
+                let option = document.createElement('option'); // subjects for area
+                option.value = `subject=${ subject }`;
+                option.textContent = present(subject);
+                group.appendChild(option);
+            });
+
+            CTRL.CATEGORY.appendChild(group);
+        });
+    });
+}
+
+// --- switches category
+
+function pivot() {
+    which = this.value;
+    load();
+}
+
+// --- initialisation
+
+function init() {
+    load();
+    stats();
+    wait();
+    categories();
+
+    CTRL.OPTIONS.ALL.forEach(o => o.addEventListener('change', check));
+    CTRL.CATEGORY.addEventListener('change', pivot);
+}
+
+// --- entry point
+
+init();
+
+  </script>
+</body>
+</html>
