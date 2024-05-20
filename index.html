@@ -223,7 +223,7 @@ function wait(start = false) {
 
 function load() {
     wait(false);
-    fetch(`/api/question.php?${ which }`)
+    fetch(`api/question.php?${ which }`)
     .then(res => res.json())
     .then(q => {
 //        console.log(q);
@@ -280,7 +280,7 @@ function check(event) {
 // --- loads all the categories
 
 function categories() {
-    fetch('/api/categories.php')
+    fetch('api/categories.php')
     .then(response => response.json())
     .then(data => {
         let areas = {};
