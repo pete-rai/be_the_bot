@@ -223,7 +223,7 @@ function wait(start = false) {
 
 function load() {
     wait(false);
-    fetch(`api/question.php?${ which }`)
+    return fetch(`api/question.php?${ which }`)
     .then(res => res.json())
     .then(q => {
 //        console.log(q);
@@ -280,7 +280,7 @@ function check(event) {
 // --- loads all the categories
 
 function categories() {
-    fetch('api/categories.php')
+    return fetch('api/categories.php')
     .then(response => response.json())
     .then(data => {
         let areas = {};
@@ -314,20 +314,38 @@ function categories() {
 // --- switches category
 
 function pivot() {
-    which = this.value;
+    which = this.value; // Set the current category
+
+    let href = new URL(window.location.href);
+    href.search = which ? `?${ which }` : '';
+    window.history.pushState({}, '', href);
+
     load();
 }
 
 // --- initialisation
 
 function init() {
-    load();
-    stats();
-    wait();
-    categories();
+    categories()
 
-    CTRL.OPTIONS.ALL.forEach(o => o.addEventListener('change', check));
-    CTRL.CATEGORY.addEventListener('change', pivot);
+    .then(() => {
+        let start = window.location.search.replace(/^\?/, '');
+        let items = Array.from(document.querySelectorAll('#category option'));
+        let known = items.find(i => i.value === start);
+
+        which = known ? start : '';
+
+        CTRL.CATEGORY.value = which;
+        CTRL.CATEGORY.addEventListener('change', pivot);
+        CTRL.OPTIONS.ALL.forEach(o => o.addEventListener('change', check));
+
+        return load();
+    })
+
+    .then(() => {
+        stats();
+        wait();
+    });
 }
 
 // --- entry point
