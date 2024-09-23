@@ -2,6 +2,10 @@
 
 > Visit my [Blog](http://pete.rai.org.uk) to get in touch 
 
+## Live Demo
+
+Try out the project live [here](https://rai.org.uk/be-the-bot/)
+
 ## Overview
 
 _Try out OpenAI's GPT assessment pack for yourself_
